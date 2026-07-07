@@ -1,0 +1,47 @@
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+} @else if (claim(); as claim) {
+  <div class="detail-header">
+    <div class="header-main">
+      <h1>{{ claim.claimNumber }}</h1>
+      <span class="status-badge" [class]="statusClass(claim.status)">{{ claim.status }}</span>
+    </div>
+    <div class="header-meta muted">
+      {{ claim.policyNumber ?? 'No policy linked' }} &middot; {{ claim.clientName ?? '—' }} &middot;
+      Loss date: {{ claim.lossEvent?.lossDate | date: 'mediumDate' }} &middot;
+      Cause: {{ claim.lossEvent?.causeOfLossCode ?? '—' }}
+    </div>
+
+    @if (claim.validNextStatuses.length > 0) {
+      <button mat-stroked-button [matMenuTriggerFor]="transitionMenu" class="transition-button">
+        Transition Status
+        <mat-icon>arrow_drop_down</mat-icon>
+      </button>
+      <mat-menu #transitionMenu="matMenu">
+        @for (status of claim.validNextStatuses; track status) {
+          <button mat-menu-item (click)="transition(status)">{{ status }}</button>
+        }
+      </mat-menu>
+    }
+  </div>
+
+  <mat-tab-group class="detail-tabs" animationDuration="0ms">
+    <mat-tab label="Overview">
+      <app-overview-tab [claim]="claim" (save)="saveNotes($event)"></app-overview-tab>
+    </mat-tab>
+    <mat-tab label="Parties">
+      <app-parties-tab [claim]="claim" (refresh)="load()"></app-parties-tab>
+    </mat-tab>
+    <mat-tab label="Reserves">
+      <app-reserves-tab [claimId]="claimId"></app-reserves-tab>
+    </mat-tab>
+    <mat-tab label="Documents">
+      <app-documents-tab [claimId]="claimId"></app-documents-tab>
+    </mat-tab>
+    <mat-tab label="Audit Log">
+      <app-audit-log-tab [claimId]="claimId"></app-audit-log-tab>
+    </mat-tab>
+  </mat-tab-group>
+}

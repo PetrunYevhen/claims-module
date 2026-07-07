@@ -1,0 +1,35 @@
+<h2 mat-dialog-title>Add Reserve</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Component</mat-label>
+      <mat-select formControlName="component">
+        @for (component of components; track component) {
+          <mat-option [value]="component">{{ component }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Amount</mat-label>
+      <input matInput type="number" formControlName="amount" />
+      <span matTextPrefix>$&nbsp;</span>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Reason</mat-label>
+      <input matInput formControlName="changeReason" />
+    </mat-form-field>
+
+    @if (authorityIndicator(); as indicator) {
+      <p class="authority-indicator" [class]="indicator.cssClass">
+        <mat-icon inline>{{ indicator.icon }}</mat-icon>
+        {{ indicator.label }}
+      </p>
+    }
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-flat-button color="primary" (click)="submit()">Submit</button>
+</mat-dialog-actions>

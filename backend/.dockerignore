@@ -1,0 +1,5 @@
+**/bin
+**/obj
+**/App_Data/uploads
+.vs
+*.user

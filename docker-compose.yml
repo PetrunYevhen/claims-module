@@ -1,0 +1,47 @@
+services:
+  db:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: claims-module-db
+    environment:
+      ACCEPT_EULA: "1"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD:-YourStrong!Passw0rd}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - claims-module-db-data:/var/opt/mssql
+    healthcheck:
+      # azure-sql-edge doesn't ship sqlcmd - probe the TCP listener directly via /dev/tcp instead.
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build:
+      context: ./backend
+    container_name: claims-module-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=ClaimsModule;User Id=sa;Password=${SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True"
+    ports:
+      - "5080:8080"
+    volumes:
+      - claims-module-uploads:/app/App_Data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend/claims-ui
+    container_name: claims-module-web
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+
+volumes:
+  claims-module-db-data:
+  claims-module-uploads:

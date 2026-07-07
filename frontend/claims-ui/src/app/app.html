@@ -1,0 +1,45 @@
+@if (auth.isAuthenticated()) {
+  <mat-toolbar color="primary" class="app-toolbar">
+    <span class="app-title">Claims Module</span>
+    <span class="spacer"></span>
+    <button mat-button [matMenuTriggerFor]="userMenu">
+      <mat-icon>account_circle</mat-icon>
+      {{ auth.currentUser()?.name }} &middot; {{ auth.currentUser()?.role }}
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <div class="menu-section-label">Switch role (testing)</div>
+      @for (user of mockUsers(); track user.username) {
+        <button mat-menu-item (click)="selectUser(user)">
+          {{ user.name }} &middot; {{ user.role }}
+        </button>
+      }
+      <mat-divider></mat-divider>
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Log out</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+
+  <main class="app-content">
+    <router-outlet></router-outlet>
+  </main>
+} @else {
+  <div class="login-screen">
+    <mat-card class="login-card">
+      <mat-card-header>
+        <mat-card-title>Claims Module</mat-card-title>
+        <mat-card-subtitle>Select a mock user to continue</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content class="user-options">
+        @for (user of mockUsers(); track user.username) {
+          <button mat-stroked-button class="user-option" (click)="selectUser(user)">
+            <mat-icon>person</mat-icon>
+            <span class="user-name">{{ user.name }}</span>
+            <span class="role-chip">{{ user.role }}</span>
+          </button>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+}

@@ -1,0 +1,44 @@
+<div class="tab-content">
+  <div class="section-header">
+    <h2>Parties</h2>
+    <button mat-stroked-button (click)="openAddPartyDialog()">
+      <mat-icon>add</mat-icon>
+      Add Party
+    </button>
+  </div>
+
+  @if (claim().parties.length === 0) {
+    <p class="muted">No parties added yet.</p>
+  } @else {
+    <div class="parties-grid">
+      @for (party of claim().parties; track party.claimPartyId) {
+        <mat-card class="party-card" [class.inactive]="!party.isActive">
+          <div class="party-header">
+            <span class="role-badge">{{ party.partyRole }}</span>
+            @if (!party.isActive) {
+              <span class="inactive-badge">Inactive</span>
+            }
+          </div>
+          <div class="party-name">
+            {{ party.partyType === 'Company' ? party.companyName : (party.firstName + ' ' + party.lastName) }}
+          </div>
+          <div class="party-contact muted">
+            {{ party.email || '—' }} &middot; {{ party.phone || '—' }}
+          </div>
+          @if (party.isActive) {
+            <button
+              mat-button
+              color="warn"
+              class="remove-button"
+              [disabled]="isLastActiveClaimant(party)"
+              [matTooltip]="isLastActiveClaimant(party) ? 'Cannot remove the last active Claimant' : ''"
+              (click)="removeParty(party)"
+            >
+              Remove
+            </button>
+          }
+        </mat-card>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,82 @@
+<div class="tab-content">
+  <div class="section-header">
+    <h2>Reserves</h2>
+    <button mat-stroked-button (click)="openAddReserveDialog()">
+      <mat-icon>add</mat-icon>
+      Add Reserve
+    </button>
+  </div>
+
+  @if (loading()) {
+    <mat-spinner diameter="32"></mat-spinner>
+  } @else {
+    @if (components().length === 0) {
+      <p class="muted">No reserves opened yet.</p>
+    } @else {
+      <div class="summary-cards">
+        @for (component of components(); track component.reserveComponentId) {
+          <mat-card class="summary-card">
+            <div class="component-name">{{ component.component }}</div>
+            <div class="current-amount">{{ component.currentAmount | currency }}</div>
+            @if (component.pendingAmount) {
+              <div class="pending-amount">Pending: {{ component.pendingAmount | currency }}</div>
+            }
+          </mat-card>
+        }
+        <mat-card class="summary-card total-card">
+          <div class="component-name">Total Approved</div>
+          <div class="current-amount">{{ totalApproved() | currency }}</div>
+        </mat-card>
+      </div>
+
+      <table mat-table [dataSource]="history()" class="history-table">
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let entry">{{ entry.createdAt | date: 'short' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="transactionType">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let entry">{{ entry.transactionType }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let entry" [class.amount-negative]="entry.amount < 0">
+            {{ entry.amount | currency }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="approvalStatus">
+          <th mat-header-cell *matHeaderCellDef>Approval</th>
+          <td mat-cell *matCellDef="let entry">
+            <span class="status-badge" [class]="statusClass(entry.approvalStatus)">{{ entry.approvalStatus }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="postingStatus">
+          <th mat-header-cell *matHeaderCellDef>GL Posting</th>
+          <td mat-cell *matCellDef="let entry">
+            <span class="status-badge" [class]="statusClass(entry.postingStatus)">{{ entry.postingStatus }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let entry">
+            @if (canApproveOrReject(entry)) {
+              <button mat-button color="primary" (click)="approve(entry)">Approve</button>
+              <button mat-button color="warn" (click)="reject(entry)">Reject</button>
+            }
+            @if (canRetract(entry)) {
+              <button mat-button (click)="retract(entry)">Retract</button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: historyColumns"></tr>
+      </table>
+    }
+  }
+</div>

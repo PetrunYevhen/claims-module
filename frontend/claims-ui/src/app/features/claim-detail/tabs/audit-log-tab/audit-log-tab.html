@@ -1,0 +1,28 @@
+<div class="tab-content">
+  <h2>Audit Log</h2>
+
+  @if (loading()) {
+    <mat-spinner diameter="32"></mat-spinner>
+  } @else if (entries().length === 0) {
+    <p class="muted">No audit entries yet.</p>
+  } @else {
+    <div class="entries">
+      @for (entry of entries(); track entry.auditLogId) {
+        <mat-card class="entry-card">
+          <div class="entry-header">
+            <span class="event-badge">{{ entry.eventType }}</span>
+            <span class="entry-date muted">{{ entry.createdAt | date: 'medium' }}</span>
+          </div>
+          <p class="entry-description">{{ entry.description }}</p>
+        </mat-card>
+      }
+    </div>
+
+    <mat-paginator
+      [length]="totalCount()"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[20, 50, 100]"
+      (page)="onPageChange($event)"
+    ></mat-paginator>
+  }
+</div>

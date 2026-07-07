@@ -1,0 +1,60 @@
+<div class="tab-content">
+  <mat-card class="section-card">
+    <h2>Loss Event</h2>
+    @if (claim().lossEvent; as lossEvent) {
+      <table class="detail-table">
+        <tr>
+          <th>Loss date</th>
+          <td>{{ lossEvent.lossDate | date: 'medium' }}</td>
+        </tr>
+        <tr>
+          <th>Cause of loss</th>
+          <td>{{ lossEvent.causeOfLossCode }}</td>
+        </tr>
+        <tr>
+          <th>Location</th>
+          <td>{{ lossEvent.lossLocation ?? '—' }}</td>
+        </tr>
+        <tr>
+          <th>Estimated amount</th>
+          <td>{{ lossEvent.estimatedLossAmount != null ? (lossEvent.estimatedLossAmount | currency) : '—' }}</td>
+        </tr>
+        <tr>
+          <th>Police report #</th>
+          <td>{{ lossEvent.policeReportNumber ?? '—' }}</td>
+        </tr>
+        <tr>
+          <th>Description</th>
+          <td>{{ lossEvent.lossDescription }}</td>
+        </tr>
+      </table>
+    }
+  </mat-card>
+
+  <mat-card class="section-card">
+    <h2>Severity</h2>
+    <p>{{ claim().severity ?? 'Not set' }}</p>
+  </mat-card>
+
+  @if (claim().validationIssues.length > 0) {
+    <mat-card class="section-card">
+      <h2>Validation Issues</h2>
+      <ul class="issues-list">
+        @for (issue of claim().validationIssues; track issue.code) {
+          <li [class.issue-critical]="issue.severity === 'Critical'" [class.issue-warning]="issue.severity === 'Warning'">
+            <strong>{{ issue.severity }}:</strong> {{ issue.message }}
+          </li>
+        }
+      </ul>
+    </mat-card>
+  }
+
+  <mat-card class="section-card">
+    <h2>Notes</h2>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Internal notes</mat-label>
+      <textarea matInput rows="4" [formControl]="notesControl"></textarea>
+    </mat-form-field>
+    <button mat-flat-button color="primary" (click)="saveNotes()">Save Notes</button>
+  </mat-card>
+</div>

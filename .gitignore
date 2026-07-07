@@ -1,0 +1,23 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# Docker
+*.log
+
+# Local dev artifacts
+backend/src/ClaimsModule.API/App_Data/uploads/
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
