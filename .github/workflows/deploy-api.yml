@@ -12,6 +12,10 @@ env:
   AZURE_WEBAPP_NAME: webapp-claims-module-api
   DOTNET_VERSION: "9.0.x"
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -31,9 +35,18 @@ jobs:
       - name: Publish API
         run: dotnet publish backend/src/ClaimsModule.API/ClaimsModule.API.csproj -c Release -o ${{ github.workspace }}/publish --no-build
 
+      # Basic Auth publishing credentials are disabled on the App Service (Azure's default for
+      # new sites), so a static publish-profile secret isn't an option - authenticate via OIDC
+      # federated credentials instead (no long-lived secret to store or leak).
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ${{ github.workspace }}/publish
