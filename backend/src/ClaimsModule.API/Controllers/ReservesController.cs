@@ -27,7 +27,9 @@ public class ReservesController(IMediator mediator) : ControllerBase
     {
         var command = new CreateReserveCommand(
             claimId, request.Component, request.Amount, request.ChangeReason, request.TransactionType);
-        return Ok(await mediator.Send(command, cancellationToken));
+        var result = await mediator.Send(command, cancellationToken);
+        // FRS 10.2: reserve creation returns 201 with the created transaction and its approval status.
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 
     [HttpGet]

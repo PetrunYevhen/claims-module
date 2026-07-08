@@ -7,6 +7,7 @@ using ClaimsModule.Application.Claims.Mapping;
 using ClaimsModule.Application.Common.Behaviors;
 using ClaimsModule.Application.Common.Interfaces;
 using ClaimsModule.Application.Common.Services;
+using ClaimsModule.Application.Reserves.Common;
 using Azure.Storage.Blobs;
 using ClaimsModule.Infrastructure.BackgroundJobs;
 using ClaimsModule.Infrastructure.Storage;
@@ -73,6 +74,7 @@ builder.Services.AddScoped<ICurrentUserService, ClaimsPrincipalCurrentUserServic
 builder.Services.AddScoped<JwtTokenGenerator>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IClaimValidationService, ClaimValidationService>();
+builder.Services.AddScoped<IReserveService, ReserveService>();
 builder.Services.AddScoped<IClaimNumberGenerator, ClaimNumberGenerator>();
 builder.Services.AddScoped<IBackgroundJobEnqueuer, HangfireBackgroundJobEnqueuer>();
 builder.Services.AddScoped<PostGLReserveChangeJob>();

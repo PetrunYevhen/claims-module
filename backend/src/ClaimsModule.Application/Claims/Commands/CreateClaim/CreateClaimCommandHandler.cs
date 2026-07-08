@@ -1,6 +1,7 @@
 using AutoMapper;
 using ClaimsModule.Application.Claims.Dtos;
 using ClaimsModule.Application.Common.Interfaces;
+using ClaimsModule.Application.Reserves.Common;
 using ClaimsModule.Domain.Entities;
 using ClaimsModule.Domain.Enums;
 using ClaimsModule.Domain.Rules;
@@ -14,6 +15,8 @@ public class CreateClaimCommandHandler(
     ICurrentUserService currentUser,
     IClaimNumberGenerator claimNumberGenerator,
     IClaimValidationService validationService,
+    IReserveService reserveService,
+    IBackgroundJobEnqueuer backgroundJobs,
     IAuditLogService auditLog,
     IMapper mapper) : IRequestHandler<CreateClaimCommand, ClaimDetailDto>
 {
@@ -105,7 +108,24 @@ public class CreateClaimCommandHandler(
                 cancellationToken: cancellationToken);
         }
 
+        // FRS 5.2 Step 3 / 10.1: the optional initial reserve is created in the SAME transaction as
+        // the claim. If it violates a rule (e.g. BR-C-06 when no policy is linked) the whole create
+        // fails and nothing is persisted, so a claim can never be left stranded without its reserve.
+        ReserveHistory? initialReserve = null;
+        if (request.InitialReserve is { } ir)
+        {
+            initialReserve = await reserveService.AddTransactionAsync(
+                claim, ir.Component, ir.Amount, ir.ChangeReason ?? "Initial reserve at FNOL intake",
+                ReserveTransactionType.Add, cancellationToken);
+        }
+
         await context.SaveChangesAsync(cancellationToken);
+
+        // GL posting is enqueued only after commit, and only for the auto-approved path.
+        if (initialReserve is { ApprovalStatus: ReserveApprovalStatus.AutoApproved })
+        {
+            backgroundJobs.EnqueueGlPosting(initialReserve.ReserveHistoryId);
+        }
 
         var dto = mapper.Map<ClaimDetailDto>(claim);
         dto.LossEvent = mapper.Map<LossEventDto>(lossEvent);

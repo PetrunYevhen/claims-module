@@ -20,6 +20,12 @@ public record CreateRiskObjectRequest(
     bool IsPrimary,
     string? AssetReference);
 
+/// <summary>FRS 5.2 Step 3: the optional initial reserve, created in the same transaction as the claim.</summary>
+public record InitialReserveRequest(
+    ReserveComponentType Component,
+    decimal Amount,
+    string? ChangeReason);
+
 public record CreateClaimCommand : IRequest<ClaimDetailDto>
 {
     public Guid? PolicyId { get; init; }
@@ -31,4 +37,5 @@ public record CreateClaimCommand : IRequest<ClaimDetailDto>
     public string? PoliceReportNumber { get; init; }
     public List<CreatePartyRequest> Parties { get; init; } = [];
     public List<CreateRiskObjectRequest> RiskObjects { get; init; } = [];
+    public InitialReserveRequest? InitialReserve { get; init; }
 }

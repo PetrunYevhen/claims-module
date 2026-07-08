@@ -16,7 +16,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatStepperModule } from '@angular/material/stepper';
 import { Router } from '@angular/router';
-import { catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
+import { debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import {
   AssetType,
   CreateClaimRequest,
@@ -29,7 +29,6 @@ import { CauseOfLossCode, Policy } from '../../core/models/reference.model';
 import { ReserveComponentType } from '../../core/models/reserve.model';
 import { ClaimsService } from '../../core/services/claims.service';
 import { ReferenceDataService } from '../../core/services/reference-data.service';
-import { ReservesService } from '../../core/services/reserves.service';
 import { ConfirmDialog } from '../../shared/confirm-dialog/confirm-dialog';
 
 const PARTY_ROLES: PartyRole[] = ['Claimant', 'Insured', 'ThirdParty', 'Witness', 'Attorney'];
@@ -59,7 +58,6 @@ const RESERVE_COMPONENTS: ReserveComponentType[] = ['Indemnity', 'Expense', 'ALA
 })
 export class FnolIntake implements OnInit {
   private readonly claimsService = inject(ClaimsService);
-  private readonly reservesService = inject(ReservesService);
   private readonly referenceDataService = inject(ReferenceDataService);
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
@@ -255,6 +253,7 @@ export class FnolIntake implements OnInit {
   private doSubmit(): void {
     this.submitting.set(true);
     const s1 = this.step1Form.getRawValue();
+    const s3 = this.step3Form.getRawValue();
 
     const request: CreateClaimRequest = {
       policyId: s1.unknownPolicy ? null : (this.selectedPolicy()?.policyId ?? null),
@@ -264,48 +263,27 @@ export class FnolIntake implements OnInit {
       causeOfLossCode: s1.causeOfLossCode,
       estimatedLossAmount: s1.estimatedLossAmount,
       parties: this.parties(),
-      riskObjects: this.riskObjects()
-    };
-
-    this.claimsService
-      .create(request)
-      .pipe(
-        switchMap((claim) => {
-          const s3 = this.step3Form.getRawValue();
-          // BR-C-06: reserve creation is blocked server-side without a linked policy - the Step 3
-          // reserve fields are hidden in that case (see template), this is the defensive mirror.
-          if (!s3.reserveAmount || !s3.reserveComponent || !this.selectedPolicy()) {
-            return of(claim);
-          }
-          return this.reservesService
-            .create(claim.claimId, {
+      riskObjects: this.riskObjects(),
+      // FRS 5.2 Step 3 / 10.1: the optional initial reserve is created in the same call, so the
+      // claim and its reserve commit as one transaction. BR-C-06: only send it when a policy is
+      // linked (the Step 3 reserve fields are hidden otherwise).
+      initialReserve:
+        s3.reserveAmount && s3.reserveComponent && this.selectedPolicy()
+          ? {
               component: s3.reserveComponent,
               amount: s3.reserveAmount,
-              changeReason: s3.reserveChangeReason || 'Initial reserve at FNOL intake',
-              transactionType: 'Add'
-            })
-            .pipe(
-              switchMap(() => of(claim)),
-              // The claim itself already exists at this point - a failed optional reserve
-              // must not strand the user on the form; surface it and still navigate through.
-              catchError(() => {
-                this.snackBar.open(
-                  `Claim ${claim.claimNumber} was created, but the initial reserve could not be submitted.`,
-                  'OK',
-                  { duration: 8000 }
-                );
-                return of(claim);
-              })
-            );
-        })
-      )
-      .subscribe({
-        next: (claim) => {
-          this.snackBar.open(`Claim ${claim.claimNumber} created.`, 'View', { duration: 6000 });
-          this.router.navigate(['/claims', claim.claimId]);
-        },
-        error: () => this.submitting.set(false)
-      });
+              changeReason: s3.reserveChangeReason || 'Initial reserve at FNOL intake'
+            }
+          : null
+    };
+
+    this.claimsService.create(request).subscribe({
+      next: (claim) => {
+        this.snackBar.open(`Claim ${claim.claimNumber} created.`, 'View', { duration: 6000 });
+        this.router.navigate(['/claims', claim.claimId]);
+      },
+      error: () => this.submitting.set(false)
+    });
   }
 
   displayParty(party: CreatePartyRequest): string {

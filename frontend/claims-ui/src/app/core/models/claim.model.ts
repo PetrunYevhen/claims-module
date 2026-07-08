@@ -131,6 +131,12 @@ export interface CreateRiskObjectRequest {
   assetReference?: string | null;
 }
 
+export interface InitialReserveRequest {
+  component: import('./reserve.model').ReserveComponentType;
+  amount: number;
+  changeReason?: string | null;
+}
+
 export interface CreateClaimRequest {
   policyId?: string | null;
   lossDate: string;
@@ -141,6 +147,8 @@ export interface CreateClaimRequest {
   policeReportNumber?: string | null;
   parties: CreatePartyRequest[];
   riskObjects: CreateRiskObjectRequest[];
+  // FRS 5.2 Step 3 / 10.1: optional initial reserve, created transactionally with the claim.
+  initialReserve?: InitialReserveRequest | null;
 }
 
 export interface ListClaimsQueryParams {

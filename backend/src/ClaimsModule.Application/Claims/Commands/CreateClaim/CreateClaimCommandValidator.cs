@@ -1,3 +1,4 @@
+using ClaimsModule.Domain.Enums;
 using FluentValidation;
 
 namespace ClaimsModule.Application.Claims.Commands.CreateClaim;
@@ -26,6 +27,19 @@ public class CreateClaimCommandValidator : AbstractValidator<CreateClaimCommand>
         {
             risk.RuleFor(r => r.AssetType).IsInEnum();
             risk.RuleFor(r => r.AssetDescription).NotEmpty();
+        });
+
+        // The optional initial reserve is validated with the same BR-R-01 amount rule as a
+        // standalone reserve (see CreateReserveCommandValidator); the change reason is defaulted
+        // in the handler, so it is not required here.
+        When(x => x.InitialReserve is not null, () =>
+        {
+            RuleFor(x => x.InitialReserve!.Component).IsInEnum();
+            RuleFor(x => x.InitialReserve!)
+                .Must(ir => ir.Component == ReserveComponentType.SubrogationRecoverable
+                    ? ir.Amount != 0
+                    : ir.Amount > 0)
+                .WithMessage("Reserve amount must be greater than zero.");
         });
     }
 }

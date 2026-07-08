@@ -82,7 +82,11 @@ A $10,000,000 aggregate cap per claim (sum of all Approved/AutoApproved reserve 
 
 ### BR-C-06 — reserves require a linked policy
 
-`CreateReserveCommandHandler` throws a `BusinessRuleException` if `Claim.PolicyId` is null. The frontend enforces this earlier (hides the reserve section during FNOL intake when no policy is selected) purely for UX — the backend check is authoritative.
+The reserve-creation path (shared `IReserveService`, see below) throws a `BusinessRuleException` if `Claim.PolicyId` is null. The frontend enforces this earlier (hides the reserve section during FNOL intake when no policy is selected) purely for UX — the backend check is authoritative.
+
+### Reserve creation — one path, two callers (FRS 5.2 / 10.1)
+
+Reserve transactions are created in exactly one place, `IReserveService.AddTransactionAsync`, which loads-or-creates the `ClaimReserveComponent`, appends the `ReserveHistory` row, applies the FRS 6.3 authority tier (auto-approve vs. pending), and writes the audit trail — but deliberately does **not** commit or enqueue the GL job. Two callers use it: `CreateReserveCommandHandler` (a standalone adjustment) and `CreateClaimCommandHandler` (the *optional initial reserve* at FNOL intake). Because the FNOL caller runs `AddTransactionAsync` before its single `SaveChangesAsync`, the claim and its initial reserve commit as one transaction — exactly what FRS 5.2 Step 3 and the FRS 10.1 endpoint contract ("Creates LossEvent, Parties, RiskObjects, and optional initial reserve in a single transaction") require. If the reserve violates a rule (e.g. BR-C-06), the whole create rolls back and no orphan claim is left behind. Each caller owns the post-commit concern its own context needs: enqueue the GL posting job when the returned transaction came back auto-approved.
 
 ### BR-C-04 — atomic claim number generation
 
