@@ -32,6 +32,9 @@ jobs:
       - name: Build
         run: dotnet build backend/ClaimsModule.sln -c Release --no-restore
 
+      - name: Test
+        run: dotnet test backend/ClaimsModule.sln -c Release --no-build --verbosity normal
+
       - name: Publish API
         run: dotnet publish backend/src/ClaimsModule.API/ClaimsModule.API.csproj -c Release -o ${{ github.workspace }}/publish --no-build
 

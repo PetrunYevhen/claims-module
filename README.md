@@ -78,6 +78,21 @@ Useful for active backend/frontend development with hot reload; the database sti
    ```
    Dev server on http://localhost:4200, configured (`environment.development.ts`) to call the API directly at `http://localhost:5080/api` — CORS is enabled on the API for this origin by default.
 
+## Tests
+
+```bash
+cd backend
+dotnet test
+```
+
+`backend/tests/ClaimsModule.Tests` (xUnit) covers the domain and business logic without needing a database — the handler tests run the real MediatR handlers against EF Core's in-memory provider:
+
+- **Domain rules** — the claim-status state machine, the three-tier reserve authority matrix, filename sanitisation (BR-D-01), and the Critical/Warning categorisation of every FNOL validation rule (BR-C-01/02/03/05/06/07).
+- **Handlers** — FNOL claim creation including the transactional initial reserve (auto-approved vs. pending, and the BR-C-06 rollback that leaves no orphan claim), reserve approval (self-approval block BR-R-03, role authority BR-R-02), and status transitions (invalid-edge rejection, the no-claimant Open block, the supervisor-only reopen, and the CC-01 pending-reserve closure block).
+- **Persistence** — the append-only `ClaimAuditLog` enforcement (BR-A-01): inserts allowed, updates and deletes rejected.
+
+The tests also run in CI (`deploy-api.yml`) and gate the API deployment — a failing test blocks the deploy.
+
 ## Configuration
 
 | Key | Location | Purpose |
