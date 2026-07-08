@@ -59,6 +59,27 @@
                   "with": "src/environments/environment.development.ts"
                 }
               ]
+            },
+            "azure": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.azure.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -71,6 +92,9 @@
             },
             "development": {
               "buildTarget": "claims-ui:build:development"
+            },
+            "azure": {
+              "buildTarget": "claims-ui:build:azure"
             }
           },
           "defaultConfiguration": "development"

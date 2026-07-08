@@ -21,3 +21,7 @@ backend/src/ClaimsModule.API/App_Data/uploads/
 .vscode/
 .idea/
 .DS_Store
+
+# Non-project source material (and any sync-conflict copies of it)
+*.docx
+TZ_dlya_interna*.md

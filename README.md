@@ -2,7 +2,14 @@
 
 Vertical slice of an insurance Claims Management System: First Notice of Loss (FNOL) intake and Reserve Management, built as a personal project. Full scope implementation (not a trimmed MVP) — greenfield, no external system dependencies beyond what's provisioned below. Built primarily by Claude Code, with the workflow and corrections documented in [`AI-WORKFLOW.md`](AI-WORKFLOW.md).
 
-> **Status**: Backend (Stage 1-7) and frontend (Stage 8) complete and E2E-verified with a real multi-role auth flow. Local Docker Compose stack (DB + API + Angular/nginx) wired for a one-command run. Azure deployment (Stage 9) not yet provisioned — see [`ARCHITECTURE.md`](ARCHITECTURE.md#target-azure-architecture-stage-9-planned) for the target design. See `TZ_dlya_interna.md` for the full staged task breakdown.
+> **Status**: Backend and frontend complete and E2E-verified with a real multi-role auth flow. Runs locally as a one-command Docker Compose stack, and is also deployed live on Azure (App Service + Azure SQL + Blob Storage + Static Web App) with GitHub Actions CI/CD on every push to `main`. See [`ARCHITECTURE.md`](ARCHITECTURE.md#azure-architecture-deployed) for the deployed design.
+
+## Live Deployment
+
+- **App**: https://victorious-moss-0356ff210.7.azurestaticapps.net
+- **API**: https://webapp-claims-module-api.azurewebsites.net/swagger
+
+Both run on Azure free-tier resources (App Service F1, SQL Database free-limit tier). First request after a period of inactivity can take 10-30 seconds — the SQL Database auto-pauses on the free tier and the App Service F1 worker cold-starts; this is expected, not a bug.
 
 ## Prerequisites
 
@@ -105,8 +112,8 @@ claims-module/
 │       ├── features/                    # claims-list, fnol-intake, claim-detail (+5 tabs)
 │       └── shared/                      # dialogs
 ├── docs/ (see ARCHITECTURE.md, AI-WORKFLOW.md — kept at repo root instead)
-├── docker-compose.yml                   # db + api + web, one-command local stack
-└── TZ_dlya_interna.md                   # original staged task breakdown
+├── .github/workflows/                   # CI/CD: deploy-api.yml, deploy-web.yml
+└── docker-compose.yml                   # db + api + web, one-command local stack
 ```
 
 Clean Architecture dependency direction: `API → Application, Infrastructure, Persistence` / `Persistence, Infrastructure → Application → Domain`. Full detail (CQRS flow, business rules, background jobs, auth design) in [`ARCHITECTURE.md`](ARCHITECTURE.md).
@@ -126,4 +133,4 @@ Conventions: GUID PKs (`NEWSEQUENTIALID()`), `decimal(19,4)` money, `datetimeoff
 
 ## Azure Deployment
 
-Not yet provisioned. Target architecture (App Service / Container Apps, Azure SQL, Blob Storage, GitHub Actions CI/CD) is documented in [`ARCHITECTURE.md`](ARCHITECTURE.md#target-azure-architecture-stage-9-planned) and tracked as Stage 9 in `TZ_dlya_interna.md`.
+Live on Azure — App Service (API), Azure SQL Database (free tier), Blob Storage, Static Web App (frontend). Full resource list, CI/CD pipeline, and design rationale in [`ARCHITECTURE.md`](ARCHITECTURE.md#azure-architecture-deployed).

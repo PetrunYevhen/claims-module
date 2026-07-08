@@ -160,20 +160,35 @@ Angular 22, standalone components throughout, signals for local component state,
 - `db` is `mcr.microsoft.com/azure-sql-edge` — the ARM64-compatible SQL Server image (Apple Silicon has no native `mssql/server` image). It ships without `sqlcmd`, so the healthcheck is a raw TCP probe (`bash -c '</dev/tcp/localhost/1433'`) instead of the usual `sqlcmd`-based one.
 - Two named volumes: `claims-module-db-data` (SQL Server data files) and `claims-module-uploads` (mounted at `/app/App_Data/uploads` in the `api` container) so both the database and locally-stored documents survive `docker compose down` (not `-v`).
 
-## Target Azure Architecture (Stage 9, planned)
+## Azure Architecture (deployed)
 
-Not yet provisioned; documented here so the deployment story is explicit even though it hasn't been executed.
+Live, not just planned. One resource group (`rg-claims-module`, Central US — West/North Europe and UK South all rejected new-customer provisioning on this subscription at deploy time, which is why the resources ended up in a US region instead of the originally intended West Europe).
 
-| Concern | Local (current) | Azure (planned) |
+| Concern | Local (Docker Compose) | Azure (deployed) |
 |---|---|---|
-| API | `api` container | Azure App Service for Containers (or Container Apps), same Dockerfile |
-| Frontend | `web` container (nginx) | Azure Static Web App (serving the same `ng build` output) or a second App Service |
-| Database | `azure-sql-edge` container | Azure SQL Database |
-| Document storage | Local filesystem volume | Azure Blob Storage (`AzureBlobStorageService` already implemented, just needs `Storage:Provider=AzureBlob` + a real connection string) |
-| Secrets | Plaintext env vars / `appsettings.json` | Azure Key Vault, referenced from App Service configuration |
-| CI/CD | none | GitHub Actions: build+test on PR, build+push container images and deploy on merge to `main` |
+| API | `api` container, Dockerfile, `mcr.microsoft.com/dotnet/aspnet:9.0` | Azure App Service, Linux, **F1 (Free) tier** — F1 doesn't support custom containers, so this is a code-based (`dotnet publish` + zip) deploy, not the Dockerfile |
+| Frontend | `web` container (nginx reverse-proxying `/api`) | Azure Static Web App (Free tier), serving a dedicated `azure` build configuration |
+| Database | `azure-sql-edge` container | Azure SQL Database, **free-limit tier** (`--use-free-limit`, `GP_S_Gen5` serverless, `AutoPause` exhaustion behavior — pauses rather than bills once the monthly free compute is used up) |
+| Document storage | Local filesystem volume | Azure Blob Storage (Standard LRS), `AzureBlobStorageService` (already implemented — just `Storage:Provider=AzureBlob` + a connection string, no code change) |
+| Secrets | `appsettings.json` / env vars | Same, as App Service Application Settings (Key Vault was scoped out — not warranted at this size) |
+| CI/CD | none | GitHub Actions: `deploy-api.yml` and `deploy-web.yml`, path-filtered, deploy on push to `main` |
 
-The Static Web App / second-App-Service split (rather than reusing the nginx-proxy pattern) matters for Azure specifically because Azure Static Web Apps have built-in support for proxying `/api/*` to a linked backend without needing to own and maintain an nginx config.
+### Why cross-origin instead of the nginx-proxy pattern
+
+Locally, `web` (nginx) and `api` share one browser-visible origin by reverse-proxying `/api`. On Azure, the Static Web App and the App Service are genuinely different origins (`*.azurestaticapps.net` vs `*.azurewebsites.net`), and Static Web Apps' native backend-linking feature adds its own constraints for a plain App Service target. Simpler and just as correct: a dedicated Angular build configuration (`azure`, in `angular.json`) swaps in `environment.azure.ts`, which points `apiBaseUrl` at the App Service's absolute URL instead of the relative `/api` used everywhere else — and the API's existing `Cors:AllowedOrigins` mechanism (already there for the `ng serve`-against-`dotnet run` local case) is pointed at the Static Web App's origin via an App Service application setting. No new mechanism, just the CORS path that already existed being pointed at a second origin.
+
+### CI/CD
+
+Two independent, path-filtered workflows so an API-only or frontend-only change doesn't rebuild both:
+
+- **`deploy-api.yml`**: `dotnet restore` → `build` → `publish` → `azure/webapps-deploy@v3` using a publish-profile secret (`AZURE_WEBAPP_PUBLISH_PROFILE`). Triggers on changes under `backend/**`.
+- **`deploy-web.yml`**: `npm ci` → `ng build --configuration azure` → `Azure/static-web-apps-deploy@v1` using a deployment-token secret (`AZURE_STATIC_WEB_APPS_API_TOKEN`). Triggers on changes under `frontend/**`, plus PR preview environments (built in by the Static Web Apps GitHub Action — opens a staging URL per PR, tears it down on close).
+
+Both are `workflow_dispatch`-enabled for manual re-runs. Neither builds the Docker images — those stay local/Compose-only, since the Azure deploy targets are code-based (App Service F1) and static-file (Static Web App), not container hosts.
+
+### First deploy was manual, on purpose
+
+The very first deploy to each service (`az webapp deploy` with a zip, `swa deploy` with the CLI) was run by hand before wiring up GitHub Actions, specifically to prove the App Service configuration (connection strings, CORS, storage settings) was correct against a real running instance before making it something CI could silently get wrong. That manual pass caught a real bug: the Azure Blob Storage connection string was being truncated at its first semicolon by an unrelated shell-scripting mistake (an unquoted multi-value string round-tripped through a `source`d env file), which zip-deploy alone wouldn't have surfaced — only actually calling the deployed `/api/reference/cause-of-loss-codes` endpoint and checking the App Service's own `az webapp config appsettings list` output caught it.
 
 ## Key Decisions & Trade-offs
 
