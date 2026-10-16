@@ -25,3 +25,5 @@ backend/src/ClaimsModule.API/App_Data/uploads/
 # Non-project source material (and any sync-conflict copies of it)
 *.docx
 TZ_dlya_interna*.md
+claims-module-ai-history.md
+TZ_dlya_interna 22.39.14.md

@@ -4,6 +4,18 @@ Vertical slice of an insurance Claims Management System: First Notice of Loss (F
 
 > **Status**: Backend and frontend complete and E2E-verified with a real multi-role auth flow. Runs locally as a one-command Docker Compose stack, and is also deployed live on Azure (App Service + Azure SQL + Blob Storage + Static Web App) with GitHub Actions CI/CD on every push to `main`. See [`ARCHITECTURE.md`](ARCHITECTURE.md#azure-architecture-deployed) for the deployed design.
 
+## Purpose & Roles
+
+**Problem solved**: an insurer receives loss reports (collision, fire, theft…). Without one system, claim data is scattered, status is unclear, and reserve decisions are not controlled by authority level. This product records the loss (FNOL), drives the claim through a defined lifecycle, enforces tiered reserve approval, and keeps an immutable audit trail.
+
+| Role | Responsibility |
+|---|---|
+| Claims Handler | Creates claims, adds parties/documents, opens reserves up to $10k |
+| Claims Supervisor | Approves reserves up to $100k, manages statuses, reopens claims |
+| Claims Manager | Approves reserves up to $10M, overrides the aggregate limit |
+
+Formal requirements (functional, non-functional, business rules): [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) (Ukrainian).
+
 ## Live Deployment
 
 - **App**: https://victorious-moss-0356ff210.7.azurestaticapps.net
